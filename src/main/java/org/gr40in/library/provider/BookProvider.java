@@ -4,9 +4,12 @@ import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.reflect.TypeUtils;
 import org.gr40in.library.dao.Book;
 import org.gr40in.library.repository.BookRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,14 +21,16 @@ public class BookProvider {
     private final BookRepository bookRepository;
 
     private final String BASE_URI = "http://books/api/book";
-
-    RestClient restClient = RestClient.create();
+//    private final RestClient restClient;
+    private final WebClient.Builder builder;
 
     public List<Book> getNewBooks() {
-        List<Book> books = restClient.get()
+
+        List<Book> books =builder.build().get()
                 .uri(BASE_URI)
                 .retrieve()
-                .body(ParameterizedTypeReference.forType(TypeUtils.parameterize(List.class, Book.class)));
+                .bodyToMono(new ParameterizedTypeReference<List<Book>>() {})
+                .block();
 
         if (!books.isEmpty()) bookRepository.saveAll(books);
 
@@ -33,12 +38,12 @@ public class BookProvider {
     }
 
     public Book getBookById(Long id) {
-        Book book = restClient.get()
+        Book blocked = builder.build().get()
                 .uri(BASE_URI + "/" + id)
-                .retrieve()
-                .body(Book.class);
-        if (book == null) throw new NoSuchElementException();
-        bookRepository.save(book);
-        return book;
+                .retrieve().bodyToMono(Book.class).block();
+
+        if (blocked == null) throw new NoSuchElementException();
+        bookRepository.save(blocked);
+        return blocked;
     }
 }

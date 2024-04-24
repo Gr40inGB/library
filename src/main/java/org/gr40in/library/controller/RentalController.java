@@ -41,6 +41,11 @@ public class RentalController {
         return ResponseEntity.ok().body(clientProvider.getClients());
     }
 
+    @GetMapping("book/{id}")
+    public ResponseEntity<Book> getBookByID(@PathVariable Long id) {
+        return ResponseEntity.ok().body(bookProvider.getBookById(id));
+    }
+
 
 
 
